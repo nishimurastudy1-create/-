@@ -1,0 +1,35 @@
+:root{--bg:#faf8f4;--fg:#222;--card:#fff;--bd:#d8d2c6;--ac:#2f6f8f;--ok:#2e7d4f;--ng:#b3392f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1c1d20;--fg:#eee;--card:#27292e;--bd:#44474f;--ac:#6bb5d6;--ok:#6fcf97;--ng:#ef8a80}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;line-height:1.6}
+main{max-width:760px;margin:0 auto;padding:12px}
+h1{font-size:1.2rem;margin:.4rem 0}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
+button,select,input{font:inherit;color:var(--fg)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;cursor:pointer}
+button.on,button.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin:8px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0}
+input[type=number],input[type=text],select{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:5px 8px}
+input[type=number]{width:64px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--bd);padding:4px 8px;text-align:left;white-space:nowrap}
+.big{font-size:3rem;text-align:center;margin:18px 0;min-height:4.5rem;letter-spacing:.1em}
+.ans{font-size:1.5rem;text-align:center;min-height:2.4rem;color:var(--ac)}
+.c{text-align:center}
+.tag{font-size:.75rem;border-radius:4px;padding:1px 6px;border:1px solid var(--bd)}
+.opts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.opts button{min-width:90px;font-size:1.1rem}
+.fb{text-align:center;font-size:1.2rem;min-height:2rem;margin:8px}
+.ok{color:var(--ok)}.ng{color:var(--ng)}
+#pa{display:none}
+@media print{
+ body *{visibility:hidden}#pa,#pa *{visibility:visible}
+ #pa{display:block;position:absolute;left:0;top:0;width:100%;color:#000}
+ #pa table{font-size:11pt}#pa th,#pa td{border:1px solid #000;color:#000;padding:5px 7px}
+ #pa th{background:#e8e8e8}#pa tr{page-break-inside:avoid}
+ @page{margin:12mm}
+}
+
+.go{width:100%;font-size:1.1rem;padding:12px;margin:8px 0}
