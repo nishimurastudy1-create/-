@@ -1,7 +1,7 @@
 // ▼▼ 情報タブの内容（ここを書き換えるだけで表示が変わります）▼▼
 const INFO={
  title:'和語・漢語・外来語クイズ',
- author:'nishimura.study.1@gmail.com',
+ author:'nishimura.study1@gmail.com',
  ver:'1.2.0',
  date:'2026/11/11',
  source:'国語Bのプリント',
@@ -13,7 +13,7 @@ const INFO={
  ],
  notes:[
   '語・読み・分類は、すべて「国語Bのプリント」に準拠しています。',
-  '誤りがあった場合は、DM等や nishimura.study.1@gmail.com までご連絡ください。',
+  '誤りがあった場合は、DM等や nishimura.study1@gmail.com までご連絡ください。',
   '間違えた問題の履歴は、お使いのブラウザの中にだけ保存されます。外部には送信されません。ブラウザのデータを消すと、履歴も消えます。'
  ]
 };
