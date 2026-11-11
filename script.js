@@ -1,3 +1,24 @@
+// ▼▼ 情報タブの内容（ここを書き換えるだけで表示が変わります）▼▼
+const INFO={
+ title:'和語・漢語・外来語クイズ',
+ author:'（作成者名を入力）',
+ ver:'1.2.0',
+ date:'2026/11/11',
+ source:'国語Bのプリント',
+ contact:'',
+ hist:[
+  ['1.2.0','2026/11/11',['「釜飯」「瀬戸」を漢語から和語へ移動','クイズに、間違えた問題の履歴機能を追加','クイズ終了後に「間違えた問題だけもう一度」を追加','「情報」画面を追加']],
+  ['1.1.0','2026/11',['フラッシュカードに「両方」モードと自動で次の語へ進む機能を追加','クイズに出題数の指定を追加','フラッシュカードとクイズを選択画面から別画面へ進む形に変更','検索エンジンに載せない設定（noindex）を追加']],
+  ['1.0.0','2026/11',['初版公開（一覧・フラッシュカード・クイズ・問題作成）']]
+ ],
+ notes:[
+  '語・読み・分類は、すべて「国語Bのプリント」に準拠しています。',
+  '個人の学習用に作った非公式のサイトです。誤りがあった場合は、プリントの内容を優先してください。',
+  '間違えた問題の履歴は、お使いのブラウザの中にだけ保存されます。外部には送信されません。ブラウザのデータを消すと、履歴も消えます。'
+ ]
+};
+// ▲▲ ここまで ▲▲
+
 const D={
 漢語:`洗濯 せんたく
 穏便 おんびん
@@ -41,10 +62,8 @@ const D={
 整頓 せいとん
 獣医 じゅうい
 頒布 はんぷ
-釜飯 かまめし
 病棟 びょうとう
 海峡 かいきょう
-瀬戸 せと
 錦秋 きんしゅう
 純粋 じゅんすい`,
 和語:`川岸 かわぎし
@@ -97,7 +116,9 @@ const D={
 父上 ちちうえ
 目元 めもと
 足技 あしわざ
-産声 うぶごえ`,
+産声 うぶごえ
+釜飯 かまめし
+瀬戸 せと`,
 外来語:`扁桃 アーモンド
 極光 オーロラ
 風琴 オルガン
@@ -155,18 +176,19 @@ const hira=s=>s.replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-96))
 const cnt=t=>D[t].split('\n').length;
 
 // nav
-const names=['一覧','フラッシュカード','クイズ','問題作成'];
+const names=['一覧','フラッシュカード','クイズ','問題作成','情報'];
 $('nav').innerHTML=names.map((n,i)=>`<button data-i="${i}">${n}</button>`).join('');
 let cur=0;
 $('nav').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;show(+i)};
 function show(i){cur=i;fcClear();
  document.querySelectorAll('nav button').forEach((b,j)=>b.classList.toggle('on',i==j));
- for(let j=0;j<4;j++)$('s'+j).hidden=j!=i;
- $('range').hidden=(i==0);
+ for(let j=0;j<5;j++)$('s'+j).hidden=j!=i;
+ $('range').hidden=(i==0||i==4);
  if(i==0)renderList();
  if(i==1){$('f-rg').appendChild($('range'));fcBack()}
  if(i==2){$('q-rg').appendChild($('range'));qzBack()}
- if(i==3){$('p-rg').appendChild($('range'));renderSheet()}}
+ if(i==3){$('p-rg').appendChild($('range'));renderSheet()}
+ if(i==4)renderInfo()}
 
 // range panel（選択画面ごとに表示場所を移動して使い回す）
 $('range').innerHTML='<b>出題範囲</b>'+T.map((t,i)=>`<div class="row"><label><input type="checkbox" id="c${i}" checked> ${t}</label>
@@ -209,32 +231,74 @@ function fcNext(){if(fc.i<fc.a.length-1){fc.i++}else{fc.a=pool();fc.i=0}fcShow()
 $('fn').onclick=fcNext;
 $('fp').onclick=()=>{if(fc.i>0)fc.i--;fcShow()};
 
-// quiz：選択画面 → 出題画面
-let qz={a:[],i:0,s:0,done:false};
+// quiz：選択画面 → 出題画面（履歴つき）
+const SK='gokushu_v1';
+function ld(){try{return JSON.parse(localStorage.getItem(SK))||{}}catch(e){return {}}}
+function sv(o){try{localStorage.setItem(SK,JSON.stringify(o))}catch(e){}}
+const wid=w=>w.k+'|'+w.r;
+const stamp=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`};
+function addMiss(w){const o=ld();o.miss=o.miss||{};const m=o.miss[wid(w)]||{n:0};m.n++;m.last=stamp();o.miss[wid(w)]=m;sv(o)}
+function delMiss(w){const o=ld();if(o.miss&&o.miss[wid(w)]){delete o.miss[wid(w)];sv(o)}}
+function logRun(){const o=ld();o.log=o.log||[];o.log.unshift({d:stamp(),k:qz.kind,m:qz.mode,n:qz.a.length,s:qz.s});o.log=o.log.slice(0,20);sv(o)}
+function histWords(){const m=ld().miss||{};return W.filter(w=>m[wid(w)])}
+const KIND={normal:'通常',retry:'間違いのやり直し',hist:'履歴から'},MODE={t:'語の種類',r:'読み'};
+
+let qz={a:[],src:[],i:0,s:0,done:false,wrong:[],kind:'normal',mode:'t',logged:false};
 $('s2').innerHTML=`<div id="q-set">
  <div class="box"><b>クイズ設定</b><div class="row">モード <select id="qm"><option value="t">語の種類（三択）</option><option value="r">読み（入力）</option></select>
  出題数 <input type="number" id="qc" min="1" placeholder="全問"> 問（空欄で範囲内すべて）</div></div>
- <div id="q-rg"></div><div class="fb ng" id="q-msg"></div><button class="pri go" id="q-go">スタート</button></div>
+ <div id="q-rg"></div><div class="fb ng" id="q-msg"></div><button class="pri go" id="q-go">スタート</button>
+ <button class="go" id="q-hb">間違えた問題の履歴（<span id="hn">0</span>問）</button></div>
+ <div id="q-hist" hidden><div class="row"><button id="h-back">← 選択に戻る</button></div>
+ <div class="box"><b>間違えた問題の履歴</b><div class="tbl" id="h-list"></div>
+ <div class="row"><button class="pri" id="h-go">履歴の問題を出題</button><button id="h-clr">履歴を消去</button></div>
+ <p style="font-size:.8rem;opacity:.7;margin:4px 0">履歴の問題で正解すると、その語は履歴から外れます。履歴はこのブラウザにだけ保存されます。</p></div>
+ <div class="box"><b>最近の成績（最新20件）</b><div class="tbl" id="h-log"></div></div></div>
  <div id="q-play" hidden><div class="row"><button id="q-back">← 選択に戻る</button><span id="qsc"></span></div>
- <div class="box"><div class="c"><span class="tag" id="qno"></span></div><div class="big" id="qk"></div><div id="qin"></div><div class="fb" id="qfb"></div><div class="c"><button id="qn" class="pri" hidden>次へ</button></div></div></div>`;
+ <div class="box"><div class="c"><span class="tag" id="qno"></span></div><div class="big" id="qk"></div><div id="qin"></div><div class="fb" id="qfb"></div>
+ <div class="row" style="justify-content:center"><button id="qn" class="pri" hidden>次へ</button><button id="qr" hidden></button></div></div></div>`;
+function startQuiz(list,kind){qz={a:list,src:list,i:0,s:0,done:false,wrong:[],kind,mode:$('qm').value,logged:false};
+ $('q-set').hidden=true;$('q-hist').hidden=true;$('q-play').hidden=false;qzShow()}
 $('q-go').onclick=()=>{const a=qzPool();if(!a.length){$('q-msg').textContent='範囲に語がありません。設定を確認してください。';return}
- $('q-msg').textContent='';qz={a,i:0,s:0,done:false};$('q-set').hidden=true;$('q-play').hidden=false;qzShow()};
+ $('q-msg').textContent='';startQuiz(a,'normal')};
 function qzPool(){const a=pool(),n=Math.floor(+$('qc').value);return n>0?a.slice(0,n):a}
-function qzBack(){$('q-set').hidden=false;$('q-play').hidden=true}
-$('q-back').onclick=qzBack;
-function qzShow(){const w=qz.a[qz.i];$('qn').hidden=true;$('qfb').textContent='';qz.done=false;
- if(!w){$('qk').textContent=`終了！ ${qz.s} / ${qz.a.length} 問正解`;$('qin').innerHTML='';$('qno').textContent='';$('qsc').textContent='';
-  $('qn').hidden=false;$('qn').textContent='もう一度';return}
+function qzBack(){$('q-set').hidden=false;$('q-play').hidden=true;$('q-hist').hidden=true;$('hn').textContent=histWords().length}
+$('q-back').onclick=qzBack;$('h-back').onclick=qzBack;
+$('q-hb').onclick=showHist;
+function showHist(){const o=ld(),m=o.miss||{},L=o.log||[];
+ const a=histWords().sort((x,y)=>m[wid(y)].n-m[wid(x)].n);
+ $('h-list').innerHTML=a.length?`<table><tr><th>語</th><th>読み</th><th>種類</th><th>間違い</th><th>最終</th></tr>${a.map(w=>`<tr><td>${w.k}</td><td>${w.r}</td><td>${w.t}</td><td>${m[wid(w)].n}回</td><td>${m[wid(w)].last}</td></tr>`).join('')}</table>`:'<p class="c">履歴はまだありません。</p>';
+ $('h-log').innerHTML=L.length?`<table><tr><th>日時</th><th>種類</th><th>モード</th><th>成績</th></tr>${L.map(x=>`<tr><td>${x.d}</td><td>${KIND[x.k]||''}</td><td>${MODE[x.m]||''}</td><td>${x.s} / ${x.n}</td></tr>`).join('')}</table>`:'<p class="c">成績はまだありません。</p>';
+ $('h-go').hidden=!a.length;$('h-clr').hidden=!a.length&&!L.length;
+ $('q-set').hidden=true;$('q-hist').hidden=false}
+$('h-go').onclick=()=>startQuiz(shuf(histWords()),'hist');
+$('h-clr').onclick=()=>{if(confirm('間違えた問題の履歴と成績をすべて消去します。よろしいですか？')){try{localStorage.removeItem(SK)}catch(e){}showHist()}};
+function qzShow(){const w=qz.a[qz.i];$('qn').hidden=true;$('qr').hidden=true;$('qfb').textContent='';qz.done=false;
+ if(!w){if(!qz.logged){qz.logged=true;logRun()}
+  $('qk').textContent=`終了！ ${qz.s} / ${qz.a.length} 問正解`;$('qin').innerHTML='';$('qno').textContent='';
+  $('qfb').textContent=qz.wrong.length?`間違えた問題：${qz.wrong.map(x=>x.k).join('、')}`:'全問正解です！';
+  $('qn').hidden=false;$('qn').textContent='もう一度';
+  $('qr').hidden=!qz.wrong.length;$('qr').textContent=`間違えた問題だけもう一度（${qz.wrong.length}問）`;return}
  $('qn').textContent='次へ';$('qno').textContent=`${qz.i+1} / ${qz.a.length}`;$('qsc').textContent=`正解 ${qz.s}`;$('qk').textContent=w.k;
- if($('qm').value=='t'){$('qin').innerHTML=`<div class="opts">${T.map(t=>`<button data-a="${t}">${t}</button>`).join('')}</div>`;
+ if(qz.mode=='t'){$('qin').innerHTML=`<div class="opts">${T.map(t=>`<button data-a="${t}">${t}</button>`).join('')}</div>`;
   $('qin').onclick=e=>{const a=e.target.dataset.a;if(a)qzJudge(a==w.t,w)};}
  else{$('qin').innerHTML=`<div class="row" style="justify-content:center"><input type="text" id="qi" placeholder="読みを入力" autocomplete="off"><button id="qg">答える</button></div>`;
   $('qin').onclick=null;const go=()=>qzJudge(hira($('qi').value)==hira(w.r),w);
   $('qg').onclick=go;$('qi').onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing)go()};$('qi').focus()}}
-function qzJudge(ok,w){if(qz.done)return;qz.done=true;if(ok)qz.s++;
+function qzJudge(ok,w){if(qz.done)return;qz.done=true;
+ if(ok){qz.s++;if(qz.kind!='normal')delMiss(w)}else{qz.wrong.push(w);addMiss(w)}
  $('qfb').innerHTML=ok?`<span class="ok">○ 正解！</span> ${w.t}・${w.r}`:`<span class="ng">× 不正解</span> 答え：${w.t}・${w.r}`;
  $('qsc').textContent=`正解 ${qz.s}`;$('qn').hidden=false}
-$('qn').onclick=()=>{if(qz.i>=qz.a.length){qz={a:qzPool(),i:0,s:0,done:false};qzShow()}else{qz.i++;qzShow()}};
+$('qn').onclick=()=>{if(qz.i>=qz.a.length){startQuiz(qz.kind=='normal'?qzPool():shuf(qz.src),qz.kind)}else{qz.i++;qzShow()}};
+$('qr').onclick=()=>startQuiz(shuf(qz.wrong),'retry');
+
+// info
+function renderInfo(){const n=T.map(t=>`${t}${cnt(t)}語`).join('・');
+ $('s4').innerHTML=`<div class="box"><h2 style="margin:.2rem 0 .5rem">${INFO.title}</h2><table>
+ <tr><th>作成者</th><td>${INFO.author}</td></tr><tr><th>バージョン</th><td>${INFO.ver}</td></tr><tr><th>最終更新日</th><td>${INFO.date}</td></tr>
+ <tr><th>出典</th><td>${INFO.source}</td></tr><tr><th>収録語数</th><td>${n}（計${W.length}語）</td></tr>${INFO.contact?`<tr><th>連絡先</th><td>${INFO.contact}</td></tr>`:''}</table></div>
+ <div class="box"><b>更新履歴</b>${INFO.hist.map(h=>`<p style="margin:.6rem 0 .1rem"><b>v${h[0]}</b>（${h[1]}）</p><ul style="margin:0">${h[2].map(x=>`<li>${x}</li>`).join('')}</ul>`).join('')}</div>
+ <div class="box"><b>ご利用にあたって</b><ul style="margin:.3rem 0">${INFO.notes.map(x=>`<li>${x}</li>`).join('')}</ul></div>`}
 
 // sheet
 $('s3').innerHTML=`<div id="p-rg"></div><div class="row"><input type="text" id="pt" value="語種・読み 確認テスト" style="flex:1"><button id="pb" class="pri">PDFとして保存／印刷</button></div>
